@@ -8,6 +8,7 @@ dist/
 # 本地校验产物
 _expected.json
 _mobile.html
+_responsive.html
 
 # 系统与编辑器
 Thumbs.db
