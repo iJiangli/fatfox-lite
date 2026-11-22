@@ -33,7 +33,7 @@
 
   --tile: clamp(46px, 4.4vw, 62px);
   /* 单元格比底板宽一点：底板等宽等距，标签才有地方写字（也不会挤歪相邻项） */
-  --cell: calc(var(--tile) + clamp(20px, 2.2vw, 34px));
+  --cell: calc(var(--tile) + clamp(24px, 2.7vw, 42px));
   --dock-tile: clamp(38px, 3.2vw, 48px);
 
   --clock-size: clamp(50px, min(8.6vw, 12.4vh), 100px);
@@ -148,7 +148,9 @@ body {
   font-size: clamp(12.5px, 1.15vw, 15px);
   font-weight: 400;
   letter-spacing: 0.06em;
-  color: var(--fg-soft);
+  color: rgba(255, 255, 255, 0.82);
+  /* 日期比时间细一档，壁纸亮的时候要有一点暗影才读得清 */
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .clock-date .dot {
@@ -330,15 +332,21 @@ body {
 }
 
 .icon-label {
-  width: 100%;
-  font-size: clamp(10.5px, 0.92vw, 12px);
-  line-height: 1.3;
+  align-self: center;
+  max-width: 100%;
+  padding: 0 4px;
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC",
+    "Hiragino Sans GB", system-ui, sans-serif;
+  font-size: clamp(12.5px, 0.86vw, 13px);
+  line-height: 1.35;
+  letter-spacing: 0.01em;
   text-align: center;
-  color: var(--fg-soft);
+  color: rgba(255, 255, 255, 0.9);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  /* 壁纸花的时候只靠白字会糊，给一层很淡的暗影就够，别做描边（描边让 CJK 小字发胖） */
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
 }
 
 .icon-item:hover .icon-label {
