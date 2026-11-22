@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Fatfox Lite 新标签页",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "极简新标签页：时钟、农历、搜索、图标、Dock、便签。无追踪、无 AI、不联网。",
   "author": "iJiangli",
   "homepage_url": "https://github.com/iJiangli/fatfox-lite",

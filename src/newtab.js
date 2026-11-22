@@ -873,7 +873,13 @@
 
     var info = el('div');
     info.style.lineHeight = '1.9';
-    info.appendChild(el('div', '', 'Fatfox Lite 新标签页 v0.1.0'));
+    var ver = '0.2.0';
+    try {
+      if (chrome && chrome.runtime && chrome.runtime.getManifest) {
+        ver = chrome.runtime.getManifest().version;
+      }
+    } catch (e) { /* 网页预览下没有 manifest，用兜底版本号 */ }
+    info.appendChild(el('div', '', 'Fatfox Lite 新标签页 v' + ver));
     info.appendChild(el('div', '', '本地运行，不联网、无追踪、无 AI。'));
     wrap.appendChild(field('关于', info));
 
