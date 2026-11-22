@@ -1,0 +1,17 @@
+# 本仓库是纯静态扩展，不需要构建产物
+node_modules/
+dist/
+*.zip
+*.crx
+*.pem
+
+# 本地校验产物
+_expected.json
+_mobile.html
+
+# 系统与编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

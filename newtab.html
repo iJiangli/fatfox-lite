@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>新标签页</title>
+  <link rel="stylesheet" href="src/newtab.css" />
+</head>
+<body>
+  <!-- 背景 -->
+  <div id="wallpaper" class="wallpaper"></div>
+  <div id="mask" class="mask"></div>
+
+  <!-- 主区 -->
+  <main class="stage">
+    <section class="clock" id="clock">
+      <div class="clock-time" id="clockTime">--:--</div>
+      <div class="clock-date">
+        <span id="clockDate">--</span>
+        <span class="dot" id="clockDot">·</span>
+        <span id="clockLunar"></span>
+      </div>
+    </section>
+
+    <form class="search" id="searchForm" autocomplete="off">
+      <span class="search-engine" id="searchEngineLabel" title="点击切换搜索引擎">Bing</span>
+      <input id="searchInput" type="text" placeholder="输入搜索内容" spellcheck="false" />
+      <button class="search-go" type="submit" aria-label="搜索">↵</button>
+    </form>
+
+    <section class="icons" id="icons"></section>
+
+    <section class="note" id="noteCard" hidden>
+      <div class="note-head">
+        <span>便签</span>
+        <span class="note-tip" id="noteTip">自动保存</span>
+      </div>
+      <div class="note-body" id="noteBody" contenteditable="true" spellcheck="false"></div>
+    </section>
+  </main>
+
+  <!-- 底部 Dock -->
+  <nav class="dock" id="dock"></nav>
+
+  <!-- 右下角 / 左下角 浮动按钮 -->
+  <div class="corner">
+    <button class="ghost-btn" id="btnSettings" title="设置">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+        <path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Zm7.43-2.53c.04-.32.07-.65.07-.97s-.03-.65-.07-.97l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.3 7.3 0 0 0-1.68-.98l-.38-2.65A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.43l-.38 2.65c-.6.24-1.16.57-1.68.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64L4.57 11c-.04.32-.07.65-.07.97s.03.65.07.97l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.12.21.38.3.6.22l2.49-1c.52.41 1.08.74 1.68.98l.38 2.65c.04.25.25.43.5.43h4c.25 0 .46-.18.5-.43l.38-2.65c.6-.24 1.16-.57 1.68-.98l2.49 1c.22.08.48 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64L19.43 12.97Z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 设置面板 -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-card">
+      <aside class="modal-nav" id="modalNav"></aside>
+      <div class="modal-body">
+        <header class="modal-head">
+          <h2 id="modalTitle">设置</h2>
+          <button class="ghost-btn small" id="btnClose" aria-label="关闭">✕</button>
+        </header>
+        <div class="modal-content" id="modalContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/lunar.js"></script>
+  <script src="src/newtab.js"></script>
+</body>
+</html>
