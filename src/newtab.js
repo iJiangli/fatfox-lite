@@ -126,6 +126,15 @@
     return s.charAt(0);
   }
 
+  // 站点名 → 一个稳定的色相（0–360）。同一个站永远同一个颜色，不同站各不相同，
+  // 用来给"抓不到图标"的条目做有色字块底色，避免白底黑字看着像图标加载失败。
+  function hueOf(text) {
+    var s = String(text || '');
+    var h = 0;
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return h;
+  }
+
   function faviconUrl(url, size) {
     try {
       return chrome.runtime.getURL('/_favicon/?pageUrl=' + encodeURIComponent(url) + '&size=' + (size || 64));
@@ -134,13 +143,42 @@
     }
   }
 
-  // 直连站点自己的 /favicon.ico —— 扩展里 _favicon 失效时（或直接用网页预览时）兜底
+  // 站点 favicon 直链（网页预览时 _favicon 不可用，走这条路）。
+  // 只用 /favicon.ico：apple-touch-icon 大多自带一块方底色，贴到白底板上像贴了张方图。
   function siteFavicon(url) {
     try {
       return new URL(/^[a-z]+:\/\//i.test(url) ? url : 'https://' + url).origin + '/favicon.ico';
     } catch (e) {
       return '';
     }
+  }
+
+  // 内置品牌图标（simple-icons 单色 mark，随扩展一起打包，不联网、不缓存）。
+  // 为什么要有：真正的 favicon 大小/留白/底色全凭各站自己发挥，16px 的还糊，
+  // 直接用站点 favicon 就永远"大小不一致"。这些主流站换成统一规格的单色 mark 后，
+  // 光学大小立刻一致，也不再受站点改版影响。
+  var BRAND_ICONS = [
+    { host: /(^|\.)github\.com$/i, src: 'assets/brand/github.svg' },
+    { host: /(^|\.)bilibili\.com$/i, src: 'assets/brand/bilibili.svg' },
+    { host: /(^|\.)zhihu\.com$/i, src: 'assets/brand/zhihu.svg' },
+    { host: /(^|\.)youtube\.com$/i, src: 'assets/brand/youtube.svg' },
+    { host: /(^|\.)music\.163\.com$/i, src: 'assets/brand/neteasecloudmusic.svg' },
+    { host: /(^|\.)cloudflare\.com$/i, src: 'assets/brand/cloudflare.svg' },
+    { host: /^1\.1\.1\.1$/i, src: 'assets/brand/cloudflare.svg' },
+    { host: /(^|\.)uupoop\.com$/i, src: 'assets/brand/adobephotoshop.svg' }
+  ];
+
+  function brandIcon(url) {
+    var host;
+    try {
+      host = new URL(/^[a-z]+:\/\//i.test(url) ? url : 'https://' + url).hostname;
+    } catch (e) {
+      return '';
+    }
+    for (var i = 0; i < BRAND_ICONS.length; i++) {
+      if (BRAND_ICONS[i].host.test(host)) return BRAND_ICONS[i].src;
+    }
+    return '';
   }
 
   function openUrl(url, newTab) {
@@ -209,50 +247,78 @@
 
   /* ---------------- 图标 / Dock ---------------- */
 
+  // 统一给一条 a 链接挂上"底板 + 图标 + 兜底字母"的结构。
+  // 图标源按优先级排队：内置品牌 mark → 扩展 _favicon（扩展环境）→ favicon.ico → 字母兜底。
+  // 全部用同一块白色底板 + 同一个内容框，所以无论原图多大、留白多少，光学大小都一致。
   function buildTile(item, cls) {
+    var isIcon = cls === 'icon-item';
     var el = document.createElement('a');
     el.className = cls;
     el.href = /^[a-z]+:\/\//i.test(item.url) ? item.url : 'https://' + item.url;
-    el.dataset.title = item.title || hostOf(item.url);
-    el.title = item.title || '';
+    var label = item.title || hostOf(item.url);
+    el.dataset.title = label;
+    el.title = label;
 
-    var isIcon = cls === 'icon-item';
-    var tile = document.createElement(isIcon ? 'div' : 'span');
-    if (isIcon) tile.className = 'icon-tile';
+    var plate = document.createElement(isIcon ? 'div' : 'span');
+    if (isIcon) plate.className = 'icon-tile';
 
-    // 初始就放字母兜底，favicon 加载成功后再替换，避免空白方块
     var fb = document.createElement('span');
     fb.className = 'fallback';
     fb.textContent = initialOf(item.title, item.url);
-    tile.appendChild(fb);
 
-    var src = faviconUrl(item.url, 64) || siteFavicon(item.url);
-    if (src) {
-      var icon = document.createElement('img');
-      icon.alt = '';
-      // 先试扩展的 _favicon 缓存，失败再直连站点 favicon.ico，仍失败就留着字母兜底
-      icon.onerror = function () {
-        var alt = siteFavicon(item.url);
-        if (alt && icon.src !== alt) {
-          icon.src = alt;
-          return;
-        }
-        if (icon.parentNode) icon.remove();
-        if (fb.parentNode !== tile) tile.appendChild(fb);
-      };
-      icon.onload = function () {
-        if (fb.parentNode === tile) tile.removeChild(fb);
-        if (!icon.parentNode) tile.appendChild(icon);
-      };
-      icon.src = src;
+    // 抓不到图标时不再白底黑字（那看着像图标坏了），改成有色渐变字块：
+    // 颜色由站点名哈希决定，同一个站永远同一个色，不同站各不相同。
+    function showFallback() {
+      if (icon.parentNode) icon.remove();
+      el.classList.add('letter');
+      el.style.setProperty('--lb-hue', hueOf(label));
+      if (fb.parentNode !== plate) plate.appendChild(fb);
     }
 
-    el.appendChild(tile);
+    // 图标源按优先级排队，逐个试，全失败才落到字母兜底。
+    // brand = 内置单色 mark（规格统一）；glyph = 站点自己的 favicon（留白不可控）。
+    var sources = [];
+    var brand = brandIcon(item.url);
+    if (brand) sources.push({ url: brand, mode: 'brand' });
+    var extIcon = faviconUrl(item.url, 128);
+    if (extIcon) sources.push({ url: extIcon, mode: 'glyph' });
+    var site = siteFavicon(item.url);
+    if (site) sources.push({ url: site, mode: 'glyph' });
+
+    var idx = 0;
+    var icon = document.createElement('img');
+    icon.alt = '';
+    icon.decoding = 'async';
+    icon.onerror = function () {
+      idx += 1;
+      if (idx < sources.length) {
+        icon.src = sources[idx].url;
+        icon.className = 'tile-img ' + sources[idx].mode;
+        return;
+      }
+      showFallback();
+    };
+    icon.onload = function () {
+      // 太小的位图（16×16 之类）放大到 46px 会糊成一团，宁可显示字母。
+      // SVG 没有 naturalWidth 意义，故只对非 brand 源做这个过滤。
+      if (sources[idx] && sources[idx].mode === 'glyph' && icon.naturalWidth && icon.naturalWidth < 32) {
+        icon.onerror();
+        return;
+      }
+      if (fb.parentNode === plate) plate.removeChild(fb);
+      if (!icon.parentNode) plate.appendChild(icon);
+    };
+    if (sources.length) {
+      icon.src = sources[0].url;
+      icon.className = 'tile-img ' + sources[0].mode;
+    }
+
+    el.appendChild(plate);
     if (isIcon) {
-      var label = document.createElement('span');
-      label.className = 'icon-label';
-      label.textContent = item.title || hostOf(item.url);
-      el.appendChild(label);
+      var text = document.createElement('span');
+      text.className = 'icon-label';
+      text.textContent = label;
+      el.appendChild(text);
     }
     return el;
   }
@@ -546,19 +612,33 @@
     list.forEach(function (item, i) {
       var row = el('div', 'entry');
       var thumb = el('div', 'entry-thumb');
-      var img = document.createElement('img');
-      img.alt = '';
-      img.onerror = function () {
-        var alt = siteFavicon(item.url);
-        if (alt && img.src !== alt) {
-          img.src = alt;
-          return;
-        }
-        img.remove();
-        thumb.appendChild(el('span', 'fallback', initialOf(item.title, item.url)));
-      };
-      img.src = faviconUrl(item.url, 32) || siteFavicon(item.url);
-      thumb.appendChild(img);
+      var fb = el('span', 'fallback', initialOf(item.title, item.url));
+      thumb.appendChild(fb);
+      var sources = [];
+      var brand = brandIcon(item.url);
+      if (brand) sources.push(brand);
+      var extIcon = faviconUrl(item.url, 64);
+      if (extIcon) sources.push(extIcon);
+      var site = siteFavicon(item.url);
+      if (site) sources.push(site);
+      if (sources.length) {
+        var img = document.createElement('img');
+        img.alt = '';
+        var idx = 0;
+        img.onerror = function () {
+          idx += 1;
+          if (idx < sources.length) {
+            img.src = sources[idx];
+            return;
+          }
+          img.remove();
+        };
+        img.onload = function () {
+          if (fb.parentNode) fb.remove();
+        };
+        img.src = sources[0];
+        thumb.appendChild(img);
+      }
       row.appendChild(thumb);
 
       var meta = el('div', 'entry-meta');
